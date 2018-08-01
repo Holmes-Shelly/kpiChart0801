@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html ng-app='DataTableApp'>
+<head>
+    <meta charset = "utf-8">
+	<script src="lib/echarts.min.js"></script>
+    <script src="lib/angular.min.js"></script>
+	<script src="lib/jquery.js"></script>
+	<script src="lib/bootstrap.min.js"></script>
+	<script src="lib/DataTable0730.js"></script>
+	
+	<link rel="stylesheet" href="css/bootstrap.min.css">
+	<link rel="stylesheet" href="css/style.css">
+	
+	<title>生产准备工作数据指标盘</title>
+</head>
+<body ng-controller="DataTableController as dataShow">
+    <div id="HeadNav" class="aRow">
+	  <div class="NavTag">
+	  生产准备工作数据指标盘
+	  </div>
+	  <div class="NavTag">
+	  2017年数据
+	  </div>
+      <div class="NavTag">
+	  历史数据
+	  </div> 
+      <div style="float:right; line-height:50px; margin-right:30px;" onclick="window.print()">
+	  打印
+	  </div>  
+	</div>
+	<div class="aRow" name="ChartandPara">
+	  <div id="PlanChart"></div>
+      <div id="GaugeCharts">
+	  
+	      <chart-top id="GaugeChartTop" ng-show="dataShow.showTopChart" tag="tag" 
+		             color="color" value="value" data="data" ng-click="dataShow.clickClosed()" 
+					 data-container="body" data-toggle="popover" data-placement="left" data-html="true" data-content="{{ dataShow.topTitle }}" data-trigger="hover">
+		  </chart-top>
+		  
+	      <div class="GaugeChart" id="chart1" ng-click="dataShow.clickHappened(0)"></div>
+		  <div class="GaugeChart" id="chart2" ng-click="dataShow.clickHappened(1)"></div>
+		  <div class="GaugeChart" id="chart3" ng-click="dataShow.clickHappened(2)"></div>
+		  <div class="GaugeChart" id="chart4" ng-click="dataShow.clickHappened(3)"></div>
+		  
+          </div>
+	  </div>
+	</div>
+	
+	<div class="aRow" style="border:1px solid #e4e4e4; border-radius: 5px;">
+		<div class="aCol" ng-repeat="indicator1 in dataShow.indicator">
+	  	    <div class="indicatorLabel">
+			{{ indicator1.name }}
+			</div>
+			<div class="indicatorLight" ng-repeat="indicator2 in indicator1.indicator" 
+			     style="background:{{ indicator2.color }}" data-trigger="hover"
+			     title="{{ indicator2.title }}" data-container="body" data-toggle="popover" 
+				 data-placement="top" data-html="true" data-content="{{ indicator2.description }}">
+			    <div style="float:left; width:70%; padding:3px 0 0 0">
+			    {{ indicator2.name }}
+			    </div>
+				<div style="float:left; width:29%; line-height:40px; border-left:1px solid #e4e4e4">
+			    {{ indicator2.quantity }}
+			    </div>
+			</div>
+		</div>
+	</div>
+	
+	
+	<script type = "text/javascript">
+	    var planChart = echarts.init(document.getElementById('PlanChart'));
+
+		//折线图的option，此处暂时未能angularjs化，有一定难度，妥协（
+		var planOption = {
+                title: {
+                text: '2017年计划完成情况',
+                subtext: '数据虚构'
+            },
+            tooltip: {
+                trigger: 'axis'
+            },
+            legend: {
+                data:['计划','实际','年计划','年实际']
+            },
+            toolbox: {
+                show: true,
+                feature: {
+                    dataZoom: {
+                        yAxisIndex: 'none'
+                    },
+                    dataView: {readOnly: false},
+                    magicType: {type: ['line', 'bar']},
+                    restore: {},
+                    saveAsImage: {}
+                }
+            },
+            xAxis:  {
+                type: 'category',
+                boundaryGap: false,
+                data: ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月']
+            },
+            yAxis: {
+                type: 'value'
+            },
+            series: [
+                {
+                    name:'计划',
+                    type:'line',
+					color:'red',
+                    data:[80, 50, 30, 50, 90, 60, 40, 80, 60, 100, 60, 59],
+                },
+                {
+                    name:'实际',
+                    type:'line',
+					color:'green',
+                    data:[70, 80, 30, 40, 80, 80],
+                    markPoint: {
+                        data: [
+			        		{type: 'max', name: '最大值'},
+                            {type: 'min', name: '最小值'}
+                        ]
+                    },
+                    markLine: {
+                        data: [
+                            {type: 'average', name: '平均值'},
+                        ]
+                    }
+                },
+        		{
+                    name:'年计划',
+                    type:'line',
+					color:'red',
+					color:'red',
+                    data:[80, 130, 160, 210, 300, 360, 400, 480, 540, 640, 700, 759],
+        			markPoint: {
+                        data: [
+                            {type: 'max', name: '最大值'}
+                        ]
+                    },
+                },		
+	        	{
+                    name:'年实际',
+                    type:'line',
+					color:'green',
+                    data:[70, 150, 180, 220, 300, 380],
+			        markPoint: {
+                        data: [
+                            {type: 'max', name: '最大值'}
+                        ]
+                    },
+                }
+            ]
+        };
+        planChart.setOption(planOption);
+		
+		//和放大版油耗表代码高度类似，暂保留，因为合并这两部分会很麻烦
+		var gaugeTag= ['总体计划', '年度计划', '月度计划', '行动项进度']
+		var gaugeDataSrc = [98, 59, 98, 100];
+		
+		//自定义一种类似对数坐标的处理方法
+		function numConvert(num){
+	    	if (num <= 40){
+	        	return num/2
+	    	}
+    		else if (num <= 80){
+	        	return num-20
+    		}
+	    	else{
+	        	return num*2-100
+	    	}
+		}
+		var gaugeData = [];
+		for (num in gaugeDataSrc){
+			gaugeData.push(numConvert(gaugeDataSrc[num]));
+    	}
+		
+		//定位4个小油耗表
+		var gaugeChart1 = echarts.init(document.getElementById('chart1'));
+		var gaugeChart2 = echarts.init(document.getElementById('chart2'));
+		var gaugeChart3 = echarts.init(document.getElementById('chart3'));
+		var gaugeChart4 = echarts.init(document.getElementById('chart4'));
+		
+		//4个油耗表使用了不同数据的option，所以用一个函数return不同的option
+		function returnOption(n) {
+		var gaugeOption = {
+        title: {
+			x: "center",
+			bottom: 15,
+			text: gaugeTag[n],
+			textStyle: {
+				fontWeight: 'normal',
+				fontSize: 20,
+				color: "#323232"
+			},
+		},
+		series: [{ 
+            type: 'gauge',
+           	center: ['50%', '65%'], // 默认全局居中  
+			radius: 100,
+            splitNumber: 5, //刻度数量
+            min: 0,
+            max:100,
+           	startAngle: 200,
+			endAngle: -20,
+		 
+            axisLine: {
+                show: true,
+                lineStyle: {
+                    width: 2,
+                    shadowBlur: 0,
+                    color: [
+                        [1, '#8f8f8f']
+                    ]
+                }
+            },
+            axisTick: {
+                show: true,
+                lineStyle: {
+                    color: '#8f8f8f',
+                    width: 1
+                },
+                length: 8,
+                splitNumber: 8
+            },
+            splitLine: {
+                show: true,
+                length: 12,
+                lineStyle: {
+                    color: '#8f8f8f',
+                }
+            },
+            axisLabel: {
+                distance: 2,
+                textStyle: {
+                    color: "#8f8f8f",
+                    fontSize: "14",
+                    fontWeight:"bold"
+                },
+                	formatter: function(e) {
+					switch(e + "") {
+						case "20":
+							return "40";
+
+						case "40":
+							return "60";
+							
+						case "60":
+							return "80";
+								
+						case "80":
+							return "90";
+								
+					    case "100":
+							return "100";
+							
+						default:
+							return e;
+					}
+				},
+				textStyle: {
+					fontSize: 12,
+					fontWeight: ""
+				}
+
+            },
+            pointer: { //仪表盘指针
+                show: 0
+            },
+            detail: {
+                show: false
+            },
+        },
+		{
+			type: 'gauge',
+			startAngle: 200,
+			endAngle: -20,
+			radius: 70,
+		    center: ['50%', '65%'], // 默认全局居中  
+			 
+			min: 0,
+			max: 100,
+
+			axisLine: {
+				show: false,
+				lineStyle: {
+					width:10,
+					shadowBlur: 0,
+					color: [
+						[0.2, 'red'],
+						[0.4, 'orange'],
+						[0.6, 'yellow'],
+						[0.8, 'green'],
+						[1, 'blue']
+					]
+				}
+			},
+			axisTick: {
+                show: false,
+                 
+            },
+			splitLine: {
+				show: false,
+				length: 20,
+
+			},
+
+			axisLabel: {
+			    show:false
+			},
+			pointer: {
+				show: true,
+			},
+			detail: {
+                show:false,
+				offsetCenter: [0, 0],
+				textStyle: {
+					fontSize: 30
+				}
+			},
+			itemStyle: {
+            normal: {
+                color: "#323232",
+                
+            }
+        },
+			data: [{
+				name: "",
+				value: Math.floor(gaugeData[n]),
+			}]
+		},
+		{
+			startAngle: 200,
+			endAngle: -20,
+			name: '实际完成',
+			type: 'gauge',
+		    center: ['50%', '65%'], // 默认全局居中  
+			radius:50,
+			min: 0,
+			max: 100,
+			splitNumber: 0,
+			axisLine: { // 坐标轴线  
+				lineStyle: {
+					color: [
+						[gaugeData[n]/100, '#dddddd'],
+						[1, 'black']
+					], // 属性lineStyle控制线条样式  
+					width: 4
+				}
+			},
+
+			 
+			axisLabel: { // 坐标轴小标记  
+				textStyle: { // 属性lineStyle控制线条样式  
+					fontWeight: 'bolder',
+					fontSize: 16,
+					color: 'rgba(30,144,255,0)',
+				}
+			},
+			splitLine: { // 分隔线  
+				length: 10, // 属性length控制线长  
+				lineStyle: { // 属性lineStyle（详见lineStyle）控制线条样式  
+					width: 0,
+					color: '#444'
+				}
+			},
+			pointer: { // 分隔线 指针  
+				color: '#666666',
+				width: 0,
+				length: 230
+			},
+			detail: {
+				show: false
+			},
+
+		}, 
+		]
+        };
+		
+		    //返回配置好的option
+			return gaugeOption
+		}
+		
+		//图表显示
+		gaugeChart1.setOption(returnOption(0));
+        gaugeChart2.setOption(returnOption(1));
+        gaugeChart3.setOption(returnOption(2));
+        gaugeChart4.setOption(returnOption(3));
+
+//使用js启用页面中的所有的data-toggle为popover的div
+$(function () { 
+	$("[data-toggle='popover']").popover();
+});
+
+//为了使网页能够单页打出，隐藏顶部标签栏
+window.onbeforeprint = function(){
+    $("#HeadNav").hide();
+}
+window.onafterprint = function(){
+    $("#HeadNav").show();
+}
+	</script>
+</body>
+</html>
